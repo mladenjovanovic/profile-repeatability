@@ -1,39 +1,9 @@
----
-output:
-  github_document: default
-  html_document:
-    df_print: paged
-    keep_md: true
-editor_options: 
-  chunk_output_type: console
----
-# Disagreement between two profiles 
 
-```{r echo=FALSE, warning=FALSE, message=FALSE}
-require(tidyverse)
-require(cowplot)
-require(knitr)
-
-knitr::opts_chunk$set(
-  comment = "#>",
-  collapse = TRUE,
-  cache = FALSE,
-  fig.retina = 0.8, # figures are either vectors or 300 dpi diagrams
-  dpi = 300,
-  out.width = "90%",
-  fig.align = "center",
-  fig.width = 6,
-  fig.height = 6 * 0.618, # 1 / phi
-  fig.show = "hold",
-  echo = TRUE,
-  warning = FALSE,
-  message = FALSE
-)
-```
+# Disagreement between two profiles
 
 Disagreement estimation models
- 
-```{r}
+
+``` r
 # --------------------------------
 disagreement_mladen <- function(L1, V1, L2, V2) {
   ((abs(L1 - L2) * min(V1, V2)) + (abs(V1 - V2) * min(L1, L2)) + (abs(L1 - L2) * abs(V1 - V2))) / 2
@@ -122,9 +92,11 @@ disagreement_euler <- function(L1, V1, L2, V2, step = 10^-5) {
 }
 ```
 
-Example of one profile being always better. The solution to this problem is simple - it is the difference between the two triangle areas. But let's see how our estimation model works:
+Example of one profile being always better. The solution to this problem
+is simple - it is the difference between the two triangle areas. But
+let’s see how our estimation model works:
 
-```{r  fig.height=3}
+``` r
 df <- tibble(
   L1 = 1,
   V1 = 1,
@@ -183,9 +155,11 @@ plot_profiles <- function(df) {
 plot_profiles(df)
 ```
 
+<img src="disagreement_files/figure-gfm/unnamed-chunk-3-1.png" width="90%" style="display: block; margin: auto;" />
+
 Example of one profile having x higher
 
-```{r  fig.height=3}
+``` r
 df <- tibble(
   L1 = 1,
   V1 = 1,
@@ -198,9 +172,12 @@ df$profile <- seq_along(df)
 plot_profiles(df)
 ```
 
-Example of one profile having proportionally different x and y, while having same surface
+<img src="disagreement_files/figure-gfm/unnamed-chunk-4-1.png" width="90%" style="display: block; margin: auto;" />
 
-```{r  fig.height=3}
+Example of one profile having proportionally different x and y, while
+having same surface
+
+``` r
 df <- tibble(
   L1 = 1,
   V1 = 1,
@@ -212,3 +189,5 @@ df$profile <- seq_along(df)
 
 plot_profiles(df)
 ```
+
+<img src="disagreement_files/figure-gfm/unnamed-chunk-5-1.png" width="90%" style="display: block; margin: auto;" />
