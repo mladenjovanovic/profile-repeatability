@@ -1,0 +1,147 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+# Disagreement between two profiles 
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+require(tidyverse)
+require(cowplot)
+```
+
+
+Disagreement estimation models
+ 
+```{r}
+# --------------------------------
+disagreement_mladen <- function(L1, V1, L2, V2) {
+  ((abs(L1 - L2) * min(V1, V2)) + (abs(V1 - V2) * min(L1, L2)) + (abs(L1 - L2) * abs(V1 - V2))) / 2
+}
+
+# --------------------------------
+disagreement_wu <- function(L1, V1, L2, V2) { # L1-to-V1, L2-to-V2
+
+  triangle_area <- function(b, h) {
+    0.5 * b * h
+  }
+
+  find_intersect <- function(x1, x2, y1, y2) {
+    a <- y1 - y2
+    b <- x1 * x2
+    c <- x1 * y1 - x2 * y2
+
+    (a * b) / c
+  }
+
+  if ((L2 >= L1 && V2 >= V1) || (L2 <= L1 && V2 <= V1)) {
+    triangle_area(max(L1, L2), max(V1, V2)) - triangle_area(min(L1, L2), min(V1, V2))
+  } else {
+    # find intersect
+    x <- find_intersect(L1, L2, V2, V1)
+    z <- -(V1 / L1) * x + V1
+
+    area_1 <- triangle_area(L2 - L1, z)
+
+    area_2 <- triangle_area(V1 - V2, x)
+
+    abs(area_1 + area_2)
+  }
+}
+```
+
+Example of one profile being always better. The solution to this problem is simple:
+
+$$
+S = \frac{1}{2}(|(L_1  V_1) - (L_2  V_2)|)
+$$
+
+But let's see how our estimation model works:
+
+```{r echo=FALSE, fig.height=3}
+df <- tibble(
+  L1 = 1,
+  V1 = 1,
+  ratio = seq(1, 2, length.out = 5),
+  L2 = L1 * ratio,
+  V2 = V1 * ratio
+)
+df$profile <- seq_along(df)
+
+
+plot_profiles <- function(df) {
+  plot_data <- pmap_dfr(df, function(...) {
+    current <- tibble(...)
+    x <- rbind(
+      data.frame(
+        ratio = current$ratio,
+        profile = current$profile,
+        A_L0 = c(0, current$L1),
+        A_V0 = c(current$V1, 0),
+        B_L0 = c(0, current$L2),
+        B_V0 = c(current$V2, 0)
+      )
+    )
+  })
+
+  panel_a <- ggplot(
+    plot_data,
+    aes(group = profile)
+  ) +
+    theme_cowplot(8) +
+    geom_line(aes(x = B_L0, y = B_V0), color = "grey") +
+    geom_line(aes(x = A_L0, y = A_V0), color = "red") +
+    scale_x_continuous(expand = c(0, 0), limits = c(0, NA)) +
+    scale_y_continuous(expand = c(0, 0), limits = c(0, NA)) +
+    xlab("Load (L)") +
+    ylab("Velocity (V)")
+
+  df <- df %>%
+    mutate(
+      mladen = disagreement_mladen(L1, V1, L2, V2),
+      wu = disagreement_wu(L1, V1, L2, V2)
+    )
+
+  plot_data <- gather(df, key = "method", value = "value", -(1:6))
+
+  panel_b <- ggplot(plot_data, aes(x = L2, y = value, color = method)) +
+    theme_cowplot(8) +
+    geom_line() +
+    ylab(NULL) +
+    xlab("Second profile L0")
+
+  plot_grid(panel_a, panel_b, nrow = 1)
+}
+
+plot_profiles(df)
+```
+
+Example of one profile having x higher
+
+```{r echo=FALSE, fig.height=3}
+df <- tibble(
+  L1 = 1,
+  V1 = 1,
+  ratio = seq(1, 2, length.out = 5),
+  L2 = L1 * ratio,
+  V2 = V1
+)
+df$profile <- seq_along(df)
+
+plot_profiles(df)
+```
+
+Example of one profile having proportionally different x and y, while having same surface
+
+```{r echo=FALSE, fig.height=3}
+df <- tibble(
+  L1 = 1,
+  V1 = 1,
+  ratio = seq(1, 2, length.out = 5),
+  L2 = L1 * ratio,
+  V2 = V1 / ratio
+)
+df$profile <- seq_along(df)
+
+plot_profiles(df)
+```
